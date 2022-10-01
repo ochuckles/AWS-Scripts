@@ -11,7 +11,9 @@
 %
 % Made by Charles Ian O'Leary, 20220914
 
-function [outputCSV] = AWSinvCleanup(inputCSV)
+% The function will create the new "cleaned" CSV for AWS, and give a size
+% (in GB) of the data set you will be working with.
+function [outputCSV, sizeGB] = AWSinvCleanup(inputCSV)
 %% Import the inventory CSV
 % Set up the Import Options and import the data
 opts = delimitedTextImportOptions("NumVariables", 3);
@@ -50,13 +52,16 @@ end
 
 %% Remove any duplicate "key" values. 
 % This can be a result of loading multiple inventories into AWS Athena on accident
-[~,idx]=unique(  strcat(cleanedInv(:,1),cleanedInv(:,2),cleanedInv(:,3)) , 'rows');
+[~,idx] = unique(strcat(cleanedInv(:,1),cleanedInv(:,2),cleanedInv(:,3)) , 'rows');
 if length(idx) > 1
-    cleanedInvWD=cleanedInv(idx,:);
+    cleanedInvWD = cleanedInv(idx,:);
 end
 %% Create a Table with useful Information
 % AWS only wants bucket and key values. 
 cleanedInvT = cell2table(cleanedInvWD(:,1:2), 'VariableNames',{'bucket' 'key'});
+% Calculate size in bytes of the dataset you are querying
+sizeGB = sum(cellfun(@str2num, cleanedInvWD(:,3)))/(1024^3);
 % Write the final CSV with 'cleaned' before input name
 outputCSV = strcat('cleaned', inputCSV);
 writetable(cleanedInvT,outputCSV, 'WriteVariableNames',false);
+end
